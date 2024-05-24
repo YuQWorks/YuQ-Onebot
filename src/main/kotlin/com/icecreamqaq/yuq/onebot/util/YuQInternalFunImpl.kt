@@ -1,9 +1,9 @@
-package com.icecreamqaq.yuq.mirai.util
+package com.icecreamqaq.yuq.onebot.util
 
 import com.icecreamqaq.yuq.entity.Member
 import com.icecreamqaq.yuq.util.YuQInternalFun
 
-class YuQInternalFunMiraiImpl: YuQInternalFun() {
+class YuQInternalFunImpl: YuQInternalFun() {
 
     override fun setMemberLastMessageTime(member: Member, time: Long) {
 
