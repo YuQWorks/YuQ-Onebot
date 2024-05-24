@@ -12,11 +12,11 @@ import java.lang.reflect.Method
 //        replaceWith = ReplaceWith("YuQStarter", "com.icecreamqaq.yuq.YuQStarter")
 //)
 
-class YuQOnebotStart {
+class YuQOnebotStarter {
 
 
     companion object {
-        private val log = LoggerFactory.getLogger(YuQOnebotStart::class.java)
+        private val log = LoggerFactory.getLogger(YuQOnebotStarter::class.java)
 
         @JvmStatic
         fun start() {
