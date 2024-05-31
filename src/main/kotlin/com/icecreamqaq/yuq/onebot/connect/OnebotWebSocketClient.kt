@@ -18,6 +18,10 @@ class OnebotWebSocketClient(
     private val token: String? = null
 ) : Closeable {
 
+    companion object{
+        suspend fun OnebotWebSocketClient.action(action: String, vararg params: Pair<String,Any>) = sendAction(action, mapOf(*params))
+    }
+
     private var isClosed = false
 
     val client = OkHttpClient.Builder()
@@ -77,7 +81,7 @@ class OnebotWebSocketClient(
                     messageMap[echo]?.let {
                         if (json.getIntValue("retcode") != 0)
                             it.completeExceptionally(RuntimeException("OneBot Error! status: ${json.getString("status")}"))
-                        else it.complete(json.getJSONObject("data"))
+                        else it.complete(json)
                     }
                 else{
                     val postType = json.getString("post_type") ?: error("post_type is null! $text")

@@ -1,16 +1,11 @@
 package com.icecreamqaq.yuq.onebot.entity
 
-import com.IceCreamQAQ.Yu.toJSONObject
 import com.icecreamqaq.yuq.YuQ
 import com.icecreamqaq.yuq.entity.*
 import com.icecreamqaq.yuq.message.Image
 import com.icecreamqaq.yuq.message.Message
 import com.icecreamqaq.yuq.message.MessageSource
-import com.icecreamqaq.yuq.onebot.message.*
 import com.icecreamqaq.yuq.onebot.control
-import com.icecreamqaq.yuq.onebot.send
-import com.icecreamqaq.yuq.util.WebHelper.Companion.postWithQQKey
-import com.icecreamqaq.yuq.web
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -22,20 +17,20 @@ abstract class ContactImpl() : Contact {
 
     private val log = LoggerFactory.getLogger(ContactImpl::class.java)
 
-    override fun sendMessage(message: Message): MessageSource {
-//        return message.send(this, miraiContact) {
-//            kotlin.runCatching {
-//                MiraiMessageSource(
-//                    runBlocking {
-//                        miraiContact.sendMessage(message.toLocal(this@ContactImpl))
-//                    }.source
-//                )
-//            }.getOrElse {
-//                control.rainBot.messageSendFailedByReadTimeout(this, message)
-//            }
-//        }
-        TODO()
-    }
+//    override fun sendMessage(message: Message): MessageSource {
+////        return message.send(this, miraiContact) {
+////            kotlin.runCatching {
+////                MiraiMessageSource(
+////                    runBlocking {
+////                        miraiContact.sendMessage(message.toLocal(this@ContactImpl))
+////                    }.source
+////                )
+////            }.getOrElse {
+////                control.rainBot.messageSendFailedByReadTimeout(this, message)
+////            }
+////        }
+//        TODO()
+//    }
 
     override fun sendFile(file: File) {
         TODO("Not yet implemented")
@@ -45,30 +40,34 @@ abstract class ContactImpl() : Contact {
         runBlocking { TODO() }
 }
 
-//class FriendImpl() : ContactImpl(), Friend {
-//
-//    override val id = friend.id
-//    override val platformId = id.toString()
-//    override val guid = id.toString()
-//
-//    override val avatar
-//        get() = friend.avatarUrl
-//    override val name
-//        get() = friend.nick
-//
-//    override fun click() {
-//        runBlocking {
-//            friend.sendNudge(friend.nudge())
-//        }
-//    }
-//
-//    override fun delete() {
-//        TODO("Not yet implemented")
-//    }
-//
-//    override fun toString() = "Friend($name($id))"
-//
-//}
+class FriendImpl(
+    override val id: Long,
+    name: String
+) : ContactImpl(), Friend {
+
+    override var name = name
+        internal set
+
+    override val platformId = id.toString()
+    override val guid = id.toString()
+
+    override val avatar: String = "https://q1.qlogo.cn/g?b=qq&nk=$id&s=640"
+    override fun click() {
+        TODO()
+    }
+
+    override fun delete() {
+        TODO("Not yet implemented")
+    }
+
+    override fun sendMessage(message: Message): MessageSource {
+        TODO("Not yet implemented")
+    }
+
+
+    override fun toString() = "Friend($name($id))"
+
+}
 //
 //class GroupImpl(internal val group: MiraiGroup) : ContactImpl(group), Group {
 //    override val id = group.id

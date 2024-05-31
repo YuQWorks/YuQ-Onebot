@@ -8,18 +8,23 @@ import com.IceCreamQAQ.Yu.controller.Router
 import com.IceCreamQAQ.Yu.di.YuContext
 import com.IceCreamQAQ.Yu.event.EventBus
 import com.IceCreamQAQ.Yu.util.Web
+import com.alibaba.fastjson.annotation.JSONField
 import com.icecreamqaq.yuq.*
 import com.icecreamqaq.yuq.controller.ContextRouter
 import com.icecreamqaq.yuq.controller.ContextSession
 import com.icecreamqaq.yuq.entity.*
 import com.icecreamqaq.yuq.message.MessageItemFactory
+import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient
+import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
+import com.icecreamqaq.yuq.onebot.entity.FriendImpl
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import javax.inject.Inject
 import javax.inject.Named
 
 open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
 
-    companion object{
+    companion object {
         private val log = LoggerFactory.getLogger(OntBotControl::class.java)
     }
 
@@ -49,9 +54,8 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
     @Config("YuQ.bot.name")
     private var botName: String? = null
 
-    @Config("YuQ.Mirai.protocol")
-    @Default("HD")
-    lateinit var protocol: String
+    @Config("YuQ.Onebot.url")
+    lateinit var url: String
 
     @Inject
     @field:Named("group")
@@ -88,13 +92,13 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
     lateinit var context: YuContext
 
 
-
-    override lateinit var friends: UserListImpl<Friend>
+    override lateinit var friends: UserListImpl<FriendImpl>
     override lateinit var groups: UserListImpl<Group>
     override val guilds: GuildList
         get() = TODO("Not yet implemented")
 
 
+    lateinit var clinet: OnebotWebSocketClient
 
 
 //    var DefaultLogger: (identity: String?) -> MiraiLogger = { YuQMiraiLogger }
@@ -112,17 +116,37 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
         com.icecreamqaq.yuq.eventBus = eventBus
         control = this
 
+        clinet = OnebotWebSocketClient(url)
 
+        runBlocking {
+            clinet.connect()
+        }
+
+        refreshFriends()
+        refreshGroups()
     }
 
 
+    data class OnebotFriendResp(
+        @field:JSONField(name = "user_id")
+        val id: Long,
+        val nickname: String,
+        val remark: String,
+        val sex: String,
+        val level: Int,
+    )
 
     override fun refreshFriends(): FriendList {
-//        val friends = UserListImpl<FriendImpl>()
-//        for (friend in bot.friends) {
-//            friends[friend.id] = FriendImpl(friend)
-//        }
-//        this.friends = friends
+        val friends = UserListImpl<FriendImpl>()
+        val ofs = runBlocking { clinet.action("get_friend_list") }
+            .getJSONArray("data")
+            .toJavaList(OnebotFriendResp::class.java)
+
+
+        for (friend in ofs) {
+            friends[friend.id] = FriendImpl(friend.id, friend.nickname)
+        }
+        this.friends = friends
         return friends
     }
 
