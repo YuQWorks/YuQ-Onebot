@@ -53,6 +53,12 @@ class OnebotWebSocketClient(
         reConnect()
     }
 
+    private val eventHandler = ConcurrentHashMap<String, suspend (JSONObject) -> Unit>()
+
+    fun registerEventHandler(event: String, handler: suspend (JSONObject) -> Unit) {
+        eventHandler[event] = handler
+    }
+
     private suspend fun reConnect() {
         if (isClosed) return
 
@@ -73,6 +79,12 @@ class OnebotWebSocketClient(
                             it.completeExceptionally(RuntimeException("OneBot Error! status: ${json.getString("status")}"))
                         else it.complete(json.getJSONObject("data"))
                     }
+                else{
+                    val postType = json.getString("post_type") ?: error("post_type is null! $text")
+                    val eventType = json.getString("${postType}_type") ?: error("${postType}_type is null! $text")
+
+                    eventHandler["$postType.$eventType"]?.let { runBlocking { it(json) } }
+                }
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
@@ -88,6 +100,5 @@ class OnebotWebSocketClient(
         if (::wsConnect.isInitialized)
             wsConnect.close(1000, "close")
     }
-
 
 }
