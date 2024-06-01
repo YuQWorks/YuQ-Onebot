@@ -1,6 +1,7 @@
 package com.icecreamqaq.yuq.onebot.message
 
 import com.icecreamqaq.yuq.entity.Contact
+import com.icecreamqaq.yuq.entity.Group
 import com.icecreamqaq.yuq.entity.Member
 import com.icecreamqaq.yuq.message.*
 import com.icecreamqaq.yuq.message.At
@@ -13,31 +14,36 @@ import kotlinx.coroutines.runBlocking
 import java.io.InputStream
 
 
-//class TextImpl(override var text: String) : MessageItemBase(), Text {
+fun omi(type: String, vararg args: Pair<String, Any>) = mapOf("type" to type, "data" to mapOf(*args))
+
+class TextImpl(override var text: String) : MessageItemBase(), Text {
+
+    override fun toLocal(contact: Contact) = omi("text", "text" to text)
+
+}
+
 //
-//    override fun toLocal(contact: Contact) = PlainText(text)
+class AtImpl(override var user: Long) : MessageItemBase(), At {
+
+    override fun toLocal(contact: Contact) =
+        if (contact is Group)
+            if (user == -1L) omi("at", "qq" to "all")
+            else omi("at", "qq" to user)
+        else omi("text", "text" to "@$user")
+
+}
+
 //
-//}
+class AtMemberImpl(override val member: Member) : MessageItemBase(), AtByMember {
+    override fun toLocal(contact: Contact) = omi("at", "qq" to member.id)
+}
+
 //
-//class AtImpl(override var user: Long) : MessageItemBase(), At {
-//
-//    override fun toLocal(contact: Contact) =
-//        if (contact is GroupImpl)
-//            if (user == -1L) AtAll
-//            else MiraiAt(contact[user].miraiContact as MiraiMember)
-//        else PlainText("@$user")
-//
-//}
-//
-//class AtMemberImpl(override val member: Member) : MessageItemBase(), AtByMember {
-//    override fun toLocal(contact: Contact) = MiraiAt((member as GroupMemberImpl).miraiContact as MiraiMember)
-//}
-//
-//class FaceImpl(override val faceId: Int) : MessageItemBase(), Face {
-//
-//    override fun toLocal(contact: Contact) = MiraiFace(faceId)
-//
-//}
+class FaceImpl(override val faceId: Int) : MessageItemBase(), Face {
+
+    override fun toLocal(contact: Contact) = omi("face", "id" to faceId)
+
+}
 //
 //class ImageSend(private val ei: ExternalResource) : MessageItemBase(), Image {
 //
