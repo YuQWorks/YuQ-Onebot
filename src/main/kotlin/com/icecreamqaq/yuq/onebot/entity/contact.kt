@@ -1,11 +1,14 @@
 package com.icecreamqaq.yuq.onebot.entity
 
+import com.alibaba.fastjson.JSONObject
 import com.icecreamqaq.yuq.YuQ
 import com.icecreamqaq.yuq.entity.*
 import com.icecreamqaq.yuq.message.Image
 import com.icecreamqaq.yuq.message.Message
 import com.icecreamqaq.yuq.message.MessageSource
+import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
 import com.icecreamqaq.yuq.onebot.control
+import com.icecreamqaq.yuq.onebot.message.OneBotMessageSource
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -17,20 +20,21 @@ abstract class ContactImpl() : Contact {
 
     private val log = LoggerFactory.getLogger(ContactImpl::class.java)
 
-//    override fun sendMessage(message: Message): MessageSource {
-////        return message.send(this, miraiContact) {
-////            kotlin.runCatching {
-////                MiraiMessageSource(
-////                    runBlocking {
-////                        miraiContact.sendMessage(message.toLocal(this@ContactImpl))
-////                    }.source
-////                )
-////            }.getOrElse {
-////                control.rainBot.messageSendFailedByReadTimeout(this, message)
-////            }
-////        }
-//        TODO()
-//    }
+    private fun Message.send(send: () -> MessageSource) =
+        control.rainBot.sendMessage(this, this@ContactImpl, Unit) { send() }
+
+    abstract suspend fun sendMessageAction(messageArray: List<Any>): JSONObject
+
+    override fun sendMessage(message: Message): MessageSource {
+        return message.send {
+            runBlocking {
+                sendMessageAction(message.body.map { it.toLocal(this@ContactImpl) })
+                    .getJSONObject("data")
+                    .getIntValue("message_id")
+                    .let { OneBotMessageSource(it, yuq.botId, id, System.currentTimeMillis()) }
+            }
+        }
+    }
 
     override fun sendFile(file: File) {
         TODO("Not yet implemented")
@@ -50,6 +54,9 @@ class FriendImpl(
 
     override val platformId = id.toString()
     override val guid = id.toString()
+    override suspend fun sendMessageAction(messageArray: List<Any>): JSONObject =
+        control.clinet.action("send_private_msg", "user_id" to id, "message" to messageArray)
+
 
     override val avatar: String = "https://q1.qlogo.cn/g?b=qq&nk=$id&s=640"
     override fun click() {
@@ -57,10 +64,6 @@ class FriendImpl(
     }
 
     override fun delete() {
-        TODO("Not yet implemented")
-    }
-
-    override fun sendMessage(message: Message): MessageSource {
         TODO("Not yet implemented")
     }
 

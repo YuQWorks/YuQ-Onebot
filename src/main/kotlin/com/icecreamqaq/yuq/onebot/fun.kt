@@ -8,5 +8,5 @@ import com.icecreamqaq.yuq.message.MessageSource
 internal lateinit var localEventBus: EventBus
 internal lateinit var control: OntBotControl
 
-internal fun <T> Message.send(contact: Contact, obj: T, send: (T) -> MessageSource) = control.rainBot.sendMessage(this, contact, obj, send)
+
 
