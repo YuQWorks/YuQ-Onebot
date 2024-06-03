@@ -2,9 +2,7 @@ package com.icecreamqaq.yuq.onebot.connect
 
 import com.IceCreamQAQ.Yu.toJSONString
 import com.alibaba.fastjson.JSONObject
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
@@ -18,8 +16,9 @@ class OnebotWebSocketClient(
     private val token: String? = null
 ) : Closeable {
 
-    companion object{
-        suspend fun OnebotWebSocketClient.action(action: String, vararg params: Pair<String,Any>) = sendAction(action, mapOf(*params))
+    companion object {
+        suspend fun OnebotWebSocketClient.action(action: String, vararg params: Pair<String, Any>) =
+            sendAction(action, mapOf(*params))
     }
 
     private var isClosed = false
@@ -83,11 +82,17 @@ class OnebotWebSocketClient(
                             it.completeExceptionally(RuntimeException("OneBot Error! status: ${json.getString("status")}"))
                         else it.complete(json)
                     }
-                else{
+                else {
                     val postType = json.getString("post_type") ?: error("post_type is null! $text")
                     val eventType = json.getString("${postType}_type") ?: error("${postType}_type is null! $text")
 
-                    eventHandler["$postType.$eventType"]?.let { runBlocking { it(json) } }
+                    GlobalScope.launch {
+                        try {
+                            eventHandler["$postType.$eventType"]?.let { it(json) }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
             }
 

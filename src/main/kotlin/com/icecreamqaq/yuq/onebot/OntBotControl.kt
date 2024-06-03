@@ -17,6 +17,7 @@ import com.icecreamqaq.yuq.message.MessageItemFactory
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
 import com.icecreamqaq.yuq.onebot.entity.FriendImpl
+import com.icecreamqaq.yuq.onebot.message.obMessageArray2Message
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import javax.inject.Inject
@@ -93,7 +94,7 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
 
 
     override lateinit var friends: UserListImpl<FriendImpl>
-    override lateinit var groups: UserListImpl<Group>
+    override var groups: UserListImpl<Group> = UserListImpl()
     override val guilds: GuildList
         get() = TODO("Not yet implemented")
 
@@ -124,6 +125,15 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
 
         refreshFriends()
         refreshGroups()
+
+        clinet.registerEventHandler("message.private") {
+            val message = obMessageArray2Message(it)
+
+            val subType = it.getString("sub_type")
+            val userId = it.getLong("user_id")
+            val friend = friends[userId] ?: return@registerEventHandler
+            rainBot.receiveFriendMessage(friend, message)
+        }
     }
 
 
