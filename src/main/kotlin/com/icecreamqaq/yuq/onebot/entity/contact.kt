@@ -9,6 +9,7 @@ import com.icecreamqaq.yuq.message.MessageSource
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
 import com.icecreamqaq.yuq.onebot.control
 import com.icecreamqaq.yuq.onebot.message.OneBotMessageSource
+import com.icecreamqaq.yuq.onebot.message.omi
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -28,7 +29,10 @@ abstract class ContactImpl() : Contact {
     override fun sendMessage(message: Message): MessageSource {
         return message.send {
             runBlocking {
-                sendMessageAction(message.body.map { it.toLocal(this@ContactImpl) })
+                val body = ArrayList<Any>()
+                message.reply?.let { body.add(omi("reply", "id" to it.id)) }
+                message.body.forEach { body.add(it.toLocal(this@ContactImpl)) }
+                sendMessageAction(body)
                     .getJSONObject("data")
                     .getIntValue("message_id")
                     .let { OneBotMessageSource(it, yuq.botId, id, System.currentTimeMillis()) }
