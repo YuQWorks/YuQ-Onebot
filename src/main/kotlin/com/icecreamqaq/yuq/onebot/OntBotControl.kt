@@ -1,7 +1,6 @@
 package com.icecreamqaq.yuq.onebot
 
 import com.IceCreamQAQ.Yu.annotation.Config
-import com.IceCreamQAQ.Yu.annotation.Default
 import com.IceCreamQAQ.Yu.`as`.ApplicationService
 import com.IceCreamQAQ.Yu.cache.EhcacheHelp
 import com.IceCreamQAQ.Yu.controller.Router
@@ -17,6 +16,7 @@ import com.icecreamqaq.yuq.message.MessageItemFactory
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
 import com.icecreamqaq.yuq.onebot.entity.FriendImpl
+import com.icecreamqaq.yuq.onebot.entity.GroupImpl
 import com.icecreamqaq.yuq.onebot.message.obMessageArray2Message
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -94,7 +94,7 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
 
 
     override lateinit var friends: UserListImpl<FriendImpl>
-    override var groups: UserListImpl<Group> = UserListImpl()
+    override lateinit var groups: UserListImpl<GroupImpl>
     override val guilds: GuildList
         get() = TODO("Not yet implemented")
 
@@ -121,6 +121,11 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
 
         runBlocking {
             clinet.connect()
+
+            clinet.action("get_login_info").let {
+                id = it.getJSONObject("data").getLong("user_id")
+                name = it.getJSONObject("data").getString("nickname")
+            }
         }
 
         refreshFriends()
@@ -133,6 +138,15 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
             val userId = it.getLong("user_id")
             val friend = friends[userId] ?: return@registerEventHandler
             rainBot.receiveFriendMessage(friend, message)
+        }
+
+        clinet.registerEventHandler("message.group") {
+            val message = obMessageArray2Message(it)
+
+            val groupId = it.getLong("group_id")
+            val group = groups[groupId] ?: return@registerEventHandler
+            val member = group.members[it.getLong("user_id")] ?: return@registerEventHandler
+            rainBot.receiveGroupMessage(member, message)
         }
     }
 
@@ -160,17 +174,24 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
         return friends
     }
 
+    data class ObGroupResp(
+        val groupId: Long,
+        val groupName: String,
+        val memberCount: Int,
+        val maxMemberCount: Int
+    )
+
     override fun refreshGroups(): GroupList {
-//        val groups = UserListImpl<GroupImpl>()
-//        for (group in bot.groups) {
-//            try {
-//                groups[group.id] = GroupImpl(group)
-//            } catch (e: Exception) {
-//                log.error("Load Group ${group.id} Error!", e)
-//            }
-//
-//        }
-//        this.groups = groups
+        val groups = UserListImpl<GroupImpl>()
+        val ogs = runBlocking { clinet.action("get_group_list") }
+            .getJSONArray("data")
+            .toJavaList(ObGroupResp::class.java)
+
+
+        for (group in ogs) {
+            groups[group.groupId] = GroupImpl(group.groupId, group.groupName)
+        }
+        this.groups = groups
         return groups
     }
 

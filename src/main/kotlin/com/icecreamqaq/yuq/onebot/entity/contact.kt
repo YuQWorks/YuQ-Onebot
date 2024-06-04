@@ -3,13 +3,16 @@ package com.icecreamqaq.yuq.onebot.entity
 import com.alibaba.fastjson.JSONObject
 import com.icecreamqaq.yuq.YuQ
 import com.icecreamqaq.yuq.entity.*
+import com.icecreamqaq.yuq.event.GroupMemberJoinEvent
 import com.icecreamqaq.yuq.message.Image
 import com.icecreamqaq.yuq.message.Message
 import com.icecreamqaq.yuq.message.MessageSource
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
 import com.icecreamqaq.yuq.onebot.control
+import com.icecreamqaq.yuq.onebot.message.AtImpl
 import com.icecreamqaq.yuq.onebot.message.OneBotMessageSource
 import com.icecreamqaq.yuq.onebot.message.omi
+import com.icecreamqaq.yuq.post
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -75,163 +78,181 @@ class FriendImpl(
     override fun toString() = "Friend($name($id))"
 
 }
+
 //
-//class GroupImpl(internal val group: MiraiGroup) : ContactImpl(group), Group {
-//    override val id = group.id
-//    override val platformId = id.toString()
-//    override val guid = "g$id"
+class GroupImpl(
+    override val id: Long,
+    override val name: String
+) : ContactImpl(), Group {
+    override val platformId = id.toString()
+    override val guid = "g$id"
+
+    override var maxCount: Int = -1
+    override val admins = arrayListOf<GroupMemberImpl>()
+    override suspend fun sendMessageAction(messageArray: List<Any>): JSONObject =
+        control.clinet.action("send_group_msg", "group_id" to id, "message" to messageArray)
+
+    override val avatar: String
+        get() = "https://p.qlogo.cn/gh/$id/$id/640"
+
+    override val notices: GroupNoticeList
+        get() = TODO("Not yet implemented")
+
+    override operator fun get(qq: Long) = super.get(qq) as GroupMemberImpl
+
+    override val members: UserListImpl<GroupMemberImpl> = UserListImpl()
+    override lateinit var bot: GroupMemberImpl
+    override lateinit var owner: Member
+
+    init {
+        refreshMember(false)
+    }
+
+    data class ObMemberResp(
+        val groupId: Long,
+        val userId: Long,
+        val nickname: String,
+        val card: String,
+        val sex: String,
+        val age: Int,
+        val area: String,
+        val joinTime: Long,
+        val lastSendTime: Long,
+        val level: Int,
+        val role: String,
+        val title: String
+    ) {
+        val permission: Int
+            get() = when (role) {
+                "owner" -> 2
+                "admin" -> 1
+                else -> 0
+            }
+    }
+
+    fun refreshMember(event: Boolean) {
+        val ofs = runBlocking { control.clinet.action("get_group_member_list", "group_id" to id) }
+            .getJSONArray("data")
+            .toJavaList(ObMemberResp::class.java)
+
+        var owner: GroupMemberImpl? = null
+        var bot: GroupMemberImpl? = null
+
+        for (me in ofs) {
+            var member = members[me.userId]
+            if (member == null) {
+                member =
+                    GroupMemberImpl(this, me.userId, me.nickname, me.card, me.title, me.permission, me.lastSendTime)
+                if (event)
+                    GroupMemberJoinEvent(this, members[me.userId]!!).post()
+
+                members[me.userId] = member
+            }
+
+            if (member.permission == 2) owner = member
+            if (member.id == yuq.botId) bot = member
+
+            if (member.permission == 1) admins.add(member)
+        }
+
+        this.owner = owner ?: error("Group $id Can't Find Owner!")
+        this.bot = bot ?: error("Group $id Can't Find Bot!")
+    }
+
+    override fun leave() {
+        TODO()
+    }
+
+    override fun isFriend() = false
+
+    override fun toString(): String {
+        return "Group($name($id))"
+    }
+
+    override fun banAll() {
+        TODO()
+    }
+
+    override fun unBanAll() {
+        TODO()
+    }
+
+
+}
+
 //
-//    override var maxCount: Int = -1
-//    override val admins = arrayListOf<GroupMemberImpl>()
-//
-//    override val avatar: String
-//        get() = group.avatarUrl
-//
-//    override val name: String = group.name
-//    override val notices: GroupNoticeList
-//        get() = TODO("Not yet implemented")
-//    override val owner: Member
-//
-//    override operator fun get(qq: Long) = super.get(qq) as GroupMemberImpl
-//
-//    override val members: UserListImpl<GroupMemberImpl>
-//    override val bot: GroupMemberImpl
-//
-//    init {
-//        members = UserListImpl()
-//        var owner: GroupMemberImpl? = null
-//        for (member in group.members) {
-//            val m = GroupMemberImpl(member, this)
-//            members[member.id] = m
-//            if (m.permission == 2) owner = m
-//            if (m.permission == 1) admins.add(m)
-//        }
-//        bot = GroupMemberImpl(group.botAsMember, this)
-//        this.owner = owner ?: if (bot.permission == 2) bot else error("Group $id Can't Find Owner!")
-//
-//    }
-//
-//    fun refreshAdmin() {
-//        admins.clear()
-//        for (member in group.members) {
-//            val m = GroupMemberImpl(member, this)
-//            members[member.id] = m
-//            if (m.permission == 1) admins.add(m)
-//        }
-//    }
-//
-//    init {
-////        maxCount = -1
-//
-//        try {
-//            maxCount = web.postWithQQKey(
-//                "https://qun.qq.com/cgi-bin/qun_mgr/search_group_members",
-//                mapOf(
-//                    "gc" to id.toString(),
-//                    "st" to 0.toString(),
-//                    "end" to 15.toString(),
-//                    "sort" to "0",
-//                    "bkn" to "{gtk}"
-//                ) as MutableMap<String, String>
-//            ).toJSONObject().getIntValue("max_count")
-//        } catch (e: Exception) {
-//        }
-//    }
-//
-//    override fun leave() {
-//        runBlocking {
-//            group.quit()
-//        }
-//    }
-//
-//    override fun isFriend() = false
-//
-//    override fun toString(): String {
-//        return "Group($name($id))"
-//    }
-//
-//    override fun banAll() {
-//        group.settings.isMuteAll = true
-//    }
-//
-//    override fun unBanAll() {
-//        group.settings.isMuteAll = false
-//    }
-//
-//
-//}
-//
-//open class GroupMemberImpl(
-//    internal val member: MiraiMember,
-//    final override val group: GroupImpl
-//) : ContactImpl(member),
-//    Member {
-//    override val platformId = id.toString()
-//    override val guid = "${group.id}_$id"
-//
-//    override val permission
-//        get() = member.permission.level
-//    override var nameCard
-//        get() = member.nameCard
-//        set(value) {
-//            member.nameCard = value
-//        }
-//    override var title
-//        get() = member.specialTitle
-//        set(value) {
-//            member.specialTitle = value
-//        }
-//
-//    override fun at() = AtImpl(id)
-//
-//    override val ban: Int
-//        get() {
-//            return member.muteTimeRemaining
-//        }
-//
-//    override fun ban(time: Int) {
-//        runBlocking {
-//            member.mute(time)
-//        }
-//    }
-//
-//    override fun click() {
-//        runBlocking {
-//            group.group.sendNudge(member.nudge())
-//        }
-//    }
-//
-//    override fun clickWithTemp() {
-//        TODO("Not yet implemented")
-//    }
-//
-//    override fun unBan() {
-//        runBlocking {
-//            member.unmute()
-//        }
-//    }
-//
-//    override fun kick(message: String) {
-//        runBlocking {
-//            member.kick(message)
-//        }
-//    }
-//
-//    override fun toString(): String {
-//        return "Member($nameCard($id)[${group.name}(${group.id}])"
-//    }
-//
-//    final override val id
-//        get() = member.id
-//    override val lastMessageTime: Long
-//        get() = member.lastSpeakTimestamp.toLong() * 1000
-//    override val avatar
-//        get() = member.avatarUrl
-//    override val name
-//        get() = member.nick
-//
-//
-//}
+open class GroupMemberImpl(
+    final override val group: GroupImpl,
+    override val id: Long,
+    override val name: String,
+
+    nameCard: String,
+    title: String,
+    override val permission: Int,
+
+    override val lastMessageTime: Long
+) : ContactImpl(), Member {
+    override val platformId = id.toString()
+    override val guid = "${group.id}_$id"
+
+    override fun at() = AtImpl(id)
+
+    override var nameCard: String = nameCard
+        set(value) {
+            TODO()
+            field = value
+        }
+
+    override var title: String = title
+        set(value) {
+            TODO()
+            field = value
+        }
+
+    override val ban: Int
+        get() {
+            TODO()
+        }
+
+    override fun ban(time: Int) {
+        TODO()
+    }
+
+    override fun click() {
+        runBlocking {
+            TODO()
+        }
+    }
+
+    override fun clickWithTemp() {
+        TODO("Not yet implemented")
+    }
+
+    override fun unBan() {
+        runBlocking {
+            TODO()
+        }
+    }
+
+    override fun kick(message: String) {
+        runBlocking {
+            TODO()
+        }
+    }
+
+    override fun toString(): String {
+        return "Member($nameCard($id)[${group.name}(${group.id}])"
+    }
+
+    override suspend fun sendMessageAction(messageArray: List<Any>): JSONObject {
+        TODO("Not yet implemented")
+    }
+
+    override val avatar
+        get() = ""
+
+
+}
 //
 //class AnonymousMemberImpl(member: MiraiMember, group: GroupImpl) : GroupMemberImpl(member, group), AnonymousMember {
 //
