@@ -87,6 +87,8 @@ class OnebotMessagePackage(
         if (type != 0) error("Onebot 渠道不支持分片消息与长消息")
 
         return body.map {
+            if (it is Message && it.source != null && it.source!!.id != -1) return omi("node","id" to it.source!!.id)
+
             val uInfo =
                 if (it is Message && it.source != null) yuq.botId to yuq.botInfo.name
                 else yuq.botId to yuq.botInfo.name
