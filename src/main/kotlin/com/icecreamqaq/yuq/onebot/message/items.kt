@@ -1,5 +1,6 @@
 package com.icecreamqaq.yuq.onebot.message
 
+import com.alibaba.fastjson.JSONObject
 import com.icecreamqaq.yuq.entity.Contact
 import com.icecreamqaq.yuq.entity.Group
 import com.icecreamqaq.yuq.entity.Member
@@ -44,60 +45,37 @@ class FaceImpl(override val faceId: Int) : MessageItemBase(), Face {
     override fun toLocal(contact: Contact) = omi("face", "id" to faceId)
 
 }
+
 //
-//class ImageSend(private val ei: ExternalResource) : MessageItemBase(), Image {
+class ImageSend(private val file: String) : MessageItemBase(), Image {
+
+    override val id: String = "Onebot 下主动发送不提供 id"
+    override val url: String = "Onebot 下主动发送不提供 url"
+
+    override fun toLocal(contact: Contact): Any =
+        omi("image", "file" to file)
+
+    override fun toPath() = "图片"
+
+}
+
 //
-//    override lateinit var id: String
-//    override lateinit var url: String
-//
-//    lateinit var image: MiraiImage
-//
-//    override fun toLocal(contact: Contact): Any {
-//        contact as ContactImpl
-//        if (::image.isInitialized) return image
-//        image = runBlocking { contact.miraiContact.uploadImage(ei) }
-//        ei.close()
-//        id = image.imageId
-//        return image
-//    }
-//
-//    override fun toPath() = "图片"
-//
-//}
-//
-//open class ImageReceive(id: String, override val url: String) : MessageItemBase(), Image {
-//
-//    override val id: String = if (id.startsWith("{")) id.replace("{", "").replace("}", "").replace("-", "") else id
-//
-//    override fun toLocal(contact: Contact): Any {
-//        return MiraiImage(id.split(".").let { "{${it[0].toUUID()}}.${it[1]}" })
-////        val cType = contact is GroupImpl
-////        val iType = image is GroupImage
-////        return if (cType == iType) image else runBlocking { mif.imageByUrl(image.queryUrl()).toLocal(contact) }
-//    }
-//
-//    private fun String.toUUID(): String = "${this[0..7]}-${this[8..11]}-${this[12..15]}-${this[16..19]}-${this[20..31]}"
-//
-//    private operator fun String.get(intRange: IntRange): String {
-//        val sb = StringBuilder()
-//
-//        for (i in intRange) {
-//            sb.append(this[i])
-//        }
-//        return sb.toString()
-//    }
-//
-//}
+open class ImageReceive(override val id: String, override val url: String) : MessageItemBase(), Image {
+
+    override fun toLocal(contact: Contact): Any =
+        omi("image", "file" to id)
+
+}
 //
 //
-//class FlashImageImpl(override val image: Image) : MessageItemBase(), FlashImage {
-//
-//    override fun toLocal(contact: Contact): Any {
-//        return (image.toLocal(contact) as MiraiImage).flash()
-//    }
-//
-//    override fun toPath() = "闪照"
-//}
+class FlashImageImpl(override val image: Image) : MessageItemBase(), FlashImage {
+
+    override fun toLocal(contact: Contact): Any {
+        return (image.toLocal(contact) as JSONObject).getJSONObject("data").set("type", "flash")
+    }
+
+    override fun toPath() = "闪照"
+}
 //
 //class VoiceRecv(
 //    val miraiVoice: OnlineAudio
@@ -143,7 +121,7 @@ class FaceImpl(override val faceId: Int) : MessageItemBase(), Face {
 //
 //}
 //
-//class NoImplItemImpl(override var source: Any) : MessageItemBase(), NoImplItem {
-//    override fun toLocal(contact: Contact) = source
-//}
+class NoImplItemImpl(override var source: Any) : MessageItemBase(), NoImplItem {
+    override fun toLocal(contact: Contact) = source
+}
 

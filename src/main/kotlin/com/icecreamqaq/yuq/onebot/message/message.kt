@@ -25,6 +25,7 @@ class OneBotMessageSource(
 fun obMessageArray2Message(event: JSONObject): Message {
     val ma = event.getJSONArray("message")
     val body = MessageItemChain()
+    val m = Message(body)
 
     for (i in 0 until ma.size) {
         val item = ma.getJSONObject(i)
@@ -32,11 +33,17 @@ fun obMessageArray2Message(event: JSONObject): Message {
         val data = item.getJSONObject("data")
         when (item.getString("type")) {
             "text" -> TextImpl(data.getString("text"))
-            else -> TextImpl("未知消息类型：${item.getString("type")}")
-        }.let { body.append(it) }
+            "at" -> AtImpl(data.getLongValue("qq"))
+            "face" -> FaceImpl(data.getIntValue("id"))
+            "image" -> ImageReceive(data.getString("file"), data.getString("url"))
+            "reply" -> {
+                m.reply = OneBotMessageSource(data.getIntValue("id"),0,0,0)
+                null
+            }
+            else -> NoImplItemImpl(item)
+        }?.let { body.append(it) }
     }
 
-    val m = Message(body)
     m.source = OneBotMessageSource(event.getIntValue("message_id"), 0, 0, event.getLongValue("time") * 1000)
 
     val pathArray = ArrayList<MessageItem>()
