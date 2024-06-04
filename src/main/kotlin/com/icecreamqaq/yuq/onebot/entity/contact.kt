@@ -11,6 +11,7 @@ import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
 import com.icecreamqaq.yuq.onebot.control
 import com.icecreamqaq.yuq.onebot.message.AtImpl
 import com.icecreamqaq.yuq.onebot.message.OneBotMessageSource
+import com.icecreamqaq.yuq.onebot.message.message2ObMessageArray
 import com.icecreamqaq.yuq.onebot.message.omi
 import com.icecreamqaq.yuq.post
 import kotlinx.coroutines.runBlocking
@@ -32,9 +33,7 @@ abstract class ContactImpl() : Contact {
     override fun sendMessage(message: Message): MessageSource {
         return message.send {
             runBlocking {
-                val body = ArrayList<Any>()
-                message.reply?.let { body.add(omi("reply", "id" to it.id)) }
-                message.body.forEach { body.add(it.toLocal(this@ContactImpl)) }
+                val body = message2ObMessageArray(this@ContactImpl, message)
                 sendMessageAction(body)
                     .getJSONObject("data")
                     .getIntValue("message_id")

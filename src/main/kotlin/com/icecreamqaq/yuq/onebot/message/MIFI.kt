@@ -41,7 +41,6 @@ class MIFI : MessageItemFactory {
     override fun xmlEx(serviceId: Int, value: String): XmlEx = TODO()//XmlImpl(serviceId, value)
 
     override fun jsonEx(value: String) = TODO()//JsonImpl(value)
-    override fun messagePackage(flag: Int, body: MutableList<IMessageItemChain>): MessagePackage {
-        TODO("Not yet implemented")
-    }
+    override fun messagePackage(flag: Int, body: MutableList<IMessageItemChain>): MessagePackage =
+        OnebotMessagePackage(flag, body)
 }

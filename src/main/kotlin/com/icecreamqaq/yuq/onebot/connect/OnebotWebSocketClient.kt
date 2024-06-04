@@ -38,7 +38,7 @@ class OnebotWebSocketClient(
 
     suspend fun sendAction(action: String, params: Map<String, Any>): JSONObject {
         val echo = msgSeq.incrementAndGet()
-        val msg = SendMessage(echo = echo.toString(), action = action, params = params).toJSONString()
+        val msg = SendMessage(echo = echo.toString(), action = action, params = params).toJSONString().apply { println(this) }
         val msgWait = CompletableDeferred<JSONObject>()
         messageMap[echo] = msgWait
         return try {

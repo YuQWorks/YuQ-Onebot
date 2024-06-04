@@ -11,6 +11,7 @@ import com.icecreamqaq.yuq.message.FlashImage
 import com.icecreamqaq.yuq.message.Image
 import com.icecreamqaq.yuq.message.Voice
 import com.icecreamqaq.yuq.onebot.entity.ContactImpl
+import com.icecreamqaq.yuq.yuq
 import kotlinx.coroutines.runBlocking
 import java.io.InputStream
 
@@ -66,6 +67,7 @@ open class ImageReceive(override val id: String, override val url: String) : Mes
         omi("image", "file" to id)
 
 }
+
 //
 //
 class FlashImageImpl(override val image: Image) : MessageItemBase(), FlashImage {
@@ -76,6 +78,28 @@ class FlashImageImpl(override val image: Image) : MessageItemBase(), FlashImage 
 
     override fun toPath() = "闪照"
 }
+
+class OnebotMessagePackage(
+    override var type: Int,
+    override val body: MutableList<IMessageItemChain>
+) : MessageItemBase(), MessagePackage {
+    override fun toLocal(contact: Contact): Any {
+        if (type != 0) error("Onebot 渠道不支持分片消息与长消息")
+
+        return body.map {
+            val uInfo =
+                if (it is Message && it.source != null) yuq.botId to yuq.botInfo.name
+                else yuq.botId to yuq.botInfo.name
+
+            val obm =
+                if (it is Message) message2ObMessageArray(contact, it)
+                else itemChain2ObMessageArray(contact, it as MessageItemChain)
+
+            omi("node", "user_id" to uInfo.first, "nickname" to uInfo.second, "content" to obm)
+        }
+    }
+}
+
 //
 //class VoiceRecv(
 //    val miraiVoice: OnlineAudio

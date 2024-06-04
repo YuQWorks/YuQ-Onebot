@@ -1,6 +1,7 @@
 package com.icecreamqaq.yuq.onebot.message
 
 import com.alibaba.fastjson.JSONObject
+import com.icecreamqaq.yuq.entity.Contact
 import com.icecreamqaq.yuq.message.Message
 import com.icecreamqaq.yuq.message.MessageItem
 import com.icecreamqaq.yuq.message.MessageItemChain
@@ -37,9 +38,10 @@ fun obMessageArray2Message(event: JSONObject): Message {
             "face" -> FaceImpl(data.getIntValue("id"))
             "image" -> ImageReceive(data.getString("file"), data.getString("url"))
             "reply" -> {
-                m.reply = OneBotMessageSource(data.getIntValue("id"),0,0,0)
+                m.reply = OneBotMessageSource(data.getIntValue("id"), 0, 0, 0)
                 null
             }
+
             else -> NoImplItemImpl(item)
         }?.let { body.append(it) }
     }
@@ -56,4 +58,23 @@ fun obMessageArray2Message(event: JSONObject): Message {
     m.path = pathArray
     m.sourceMessage = event
     return m
+}
+
+fun message2ObMessageArray(contact: Contact, message: Message): List<Any> {
+    val body = ArrayList<Any>()
+    message.reply?.let { body.add(omi("reply", "id" to it.id)) }
+    body.addAll(itemChain2ObMessageArray(contact, message.body))
+    return body
+}
+
+fun itemChain2ObMessageArray(contact: Contact, chain: MessageItemChain): List<Any> {
+    val body = ArrayList<Any>()
+    chain.forEach { item ->
+        item.toLocal(contact)
+            .let {
+                if (it is List<*>) body.addAll(it as List<Any>)
+                else body.add(it)
+            }
+    }
+    return body
 }
