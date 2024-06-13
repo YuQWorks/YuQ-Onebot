@@ -1,4 +1,4 @@
-YuQ-Mirai 是一个以 [mirai](https://github.com/mamoe/mirai) 为基础，并实现了 [YuQ API](https://github.com/YuQWorks/YuQ) 的 QQ 机器人快速开发框架。
+YuQ-OneBot 是一个实现了 [YuQ API](https://github.com/YuQWorks/YuQ) 的 QQ 机器人快速开发框架。
 
  - 路由映射
  - 依赖注入
@@ -6,9 +6,7 @@ YuQ-Mirai 是一个以 [mirai](https://github.com/mamoe/mirai) 为基础，并�
  - ORM支持
  - 上下文消息
  
-YuQ-Mirai 使用 Kotlin 开发，并且完美支持 Java 与 Kotlin。 
-
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.IceCreamQAQ.YuQ/YuQ-Mirai/badge.svg)](https://search.maven.org/#search|ga|1|com.IceCreamQAQ.YuQ.YuQ-Mirai)
+YuQ-Ontbot 使用 Kotlin 开发，并且完美支持 Java 与 Kotlin。 
 
  
 在 YuQ 我们仅需很简单的代码，就可以完成很复杂的功能。  
