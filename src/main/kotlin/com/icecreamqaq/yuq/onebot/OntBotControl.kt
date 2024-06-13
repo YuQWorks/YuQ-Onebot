@@ -11,7 +11,9 @@ import com.alibaba.fastjson.annotation.JSONField
 import com.icecreamqaq.yuq.*
 import com.icecreamqaq.yuq.controller.ContextRouter
 import com.icecreamqaq.yuq.controller.ContextSession
-import com.icecreamqaq.yuq.entity.*
+import com.icecreamqaq.yuq.entity.User
+import com.icecreamqaq.yuq.entity.UserListImpl
+import com.icecreamqaq.yuq.event.GroupRecallEvent
 import com.icecreamqaq.yuq.message.MessageItemFactory
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient
 import com.icecreamqaq.yuq.onebot.connect.OnebotWebSocketClient.Companion.action
@@ -147,6 +149,13 @@ open class OntBotControl : YuQ, ApplicationService, User, YuQVersion {
             val group = groups[groupId] ?: return@registerEventHandler
             val member = group.members[it.getLong("user_id")] ?: return@registerEventHandler
             rainBot.receiveGroupMessage(member, message)
+        }
+
+        clinet.registerEventHandler("notice.group_recall") {
+            val group = groups[it.getLong("group_id")] ?: return@registerEventHandler
+            val sender = group.members[it.getLong("user_id")] ?: return@registerEventHandler
+            val operator = group.members[it.getLong("operator_id")] ?: return@registerEventHandler
+            GroupRecallEvent(group, sender, operator, it.getIntValue("message_id")).post()
         }
     }
 
